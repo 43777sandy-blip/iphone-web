@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <title>iPhone Simulator</title>
+  <style>
+    :root {
+      --bg-glass: rgba(255, 255, 255, 0.25);
+      --bg-glass-dark: rgba(30, 30, 30, 0.75);
+      --border-glass: rgba(255, 255, 255, 0.3);
+      --text-main: #ffffff;
+      --spotify-green: #1db954;
+      --ios-red: #ff3b30;
+      --ios-yellow: #fee500;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #000;
+    }
+
+    #phone-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background-size: cover;
+      background-position: center;
+      overflow: hidden;
+    }
+
+    /* Status Bar & Home Indicator */
+    .status-bar {
+      position: absolute;
+      top: 0;
+      width: 100%;
+      height: 44px;
+      padding: 0 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--text-main);
+      font-size: 14px;
+      font-weight: 600;
+      z-index: 999;
+    }
+
+    .home-bar {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 134px;
+      height: 5px;
+      background-color: rgba(255, 255, 255, 0.8);
+      border-radius: 3px;
+      z-index: 1000;
+      cursor: pointer;
+    }
+
+    /* Views */
+    .screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: none;
+      flex-direction: column;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    /* Lock Screen */
+    #lock-screen {
+      justify-content: flex-start;
+      align-items: center;
+      padding-top: 60px;
+      transition: transform 0.4s ease;
+    }
+
+    .lock-time {
+      font-size: 80px;
+      font-weight: 200;
+      color: var(--text-main);
+      line-height: 1;
+    }
+
+    .lock-date {
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--text-main);
+      margin-top: 10px;
+    }
+
+    .lock-hint {
+      position: absolute;
+      bottom: 40px;
+      color: var(--text-main);
+      font-size: 14px;
+      opacity: 0.8;
+    }
+
+    /* Home Screen */
+    #home-screen {
+      padding: 50px 20px 20px 20px;
+      justify-content: space-between;
+    }
+
+    .widgets-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .widget {
+      background: var(--bg-glass);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 22px;
+      padding: 16px;
+      color: var(--text-main);
+      border: 1px solid var(--border-glass);
+    }
+
+    .app-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px 15px;
+      margin-top: 20px;
+    }
+
+    .app-icon {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .app-icon .icon-box {
+      width: 60px;
+      height: 60px;
+      border-radius: 14px;
+      background: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 28px;
+      color: white;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+
+    .app-icon span {
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--text-main);
+      text-align: center;
+    }
+
+    .dock {
+      background: var(--bg-glass);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 35px;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-around;
+      border: 1px solid var(--border-glass);
+      margin-bottom: 15px;
+    }
+
+    /* App Screen Base */
+    .app-view {
+      background: #000;
+      color: #fff;
+      z-index: 100;
+      padding-top: 44px;
+      padding-bottom: 30px;
+      overflow-y: auto;
+    }
+
+    /* Phone App */
+    #app-phone { background: #000; }
+    .call-row { display: flex; justify-content: space-between; padding: 12px 20px; border-bottom: 0.5px solid #222; }
+    .call-row.missed { color: var(--ios-red); }
+
+    /* KakaoTalk App */
+    #app-kakao { background: #abc1d1; color: #000; }
+    .chat-bubble { background: var(--ios-yellow); padding: 10px 14px; border-radius: 14px; max-width: 70%; margin-left: auto; margin-bottom: 10px; font-size: 14px; color: #000; }
+
+    /* Twitter App */
+    #app-twitter { background: #000; }
+    .tweet-card { border-bottom: 0.5px solid #333; padding: 15px; }
+
+    /* Instagram Video Call Overlay */
+    #app-instagram { background: #121212; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 500; }
+    .call-incoming { display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 100%; padding: 80px 20px 60px; }
+    .avatar-anim { width: 100px; height: 100px; border-radius: 50%; background: #333; animation: pulse 2s infinite; display: flex; justify-content: center; align-items: center; font-size: 36px; }
+
+    @keyframes pulse {
+      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,255,255,0.4); }
+      70% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(255,255,255,0); }
+      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+    }
+
+    /* Spotify App */
+    #app-spotify { background: #121212; color: #fff; }
+    .spotify-green { color: var(--spotify-green); }
+  </style>
+</head>
+<body>
+
+<div id="phone-container">
+  <div class="status-bar">
+    <span id="clock-status">00:00</span>
+    <span>5G 100%</span>
+  </div>
+
+  <!-- Lock Screen -->
+  <div id="lock-screen" class="screen active">
+    <div class="lock-time" id="lock-time">00:00</div>
+    <div class="lock-date" id="lock-date">10월 25일 일요일</div>
+    <div class="lock-hint">위로 쓸어올려서 해제</div>
+  </div>
+
+  <!-- Home Screen -->
+  <div id="home-screen" class="screen">
+    <div>
+      <div class="widgets-container">
+        <div class="widget" id="w-weather">
+          <div style="font-size: 12px;" id="w-place">서울</div>
+          <div style="font-size: 28px; font-weight: 300;" id="w-temp">20°</div>
+          <div style="font-size: 11px;" id="w-desc">맑음</div>
+          <div style="font-size: 10px; opacity: 0.8;" id="w-hl">최고 22° 최저 14°</div>
+        </div>
+        <div class="widget" id="w-events">
+          <div style="font-size: 12px; font-weight: 600; margin-bottom: 6px;">일정</div>
+          <div style="font-size: 11px;" id="w-ev-list"></div>
+        </div>
+      </div>
+
+      <div class="app-grid">
+        <div class="app-icon" onclick="openApp('phone')"><div class="icon-box" style="background:#34c759;">📞</div><span>전화</span></div>
+        <div class="app-icon" onclick="openApp('kakao')"><div class="icon-box" style="background:#fee500; color:#000;">💬</div><span>카카오톡</span></div>
+        <div class="app-icon" onclick="openApp('twitter')"><div class="icon-box" style="background:#000; border:1px solid #333;">𝕏</div><span>X</span></div>
+        <div class="app-icon" onclick="openApp('instagram')"><div class="icon-box" style="background:linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);">📷</div><span>Instagram</span></div>
+        <div class="app-icon" onclick="openApp('spotify')"><div class="icon-box" style="background:#1db954;">🎵</div><span>Spotify</span></div>
+        <div class="app-icon"><div class="icon-box" style="background:#ff0000;">▶</div><span>YouTube</span></div>
+        <div class="app-icon"><div class="icon-box" style="background:#108ee9;">🖼</div><span>사진</span></div>
+        <div class="app-icon"><div class="icon-box" style="background:#ff9500;">📝</div><span>메모</span></div>
+      </div>
+    </div>
+
+    <div class="dock">
+      <div class="app-icon" onclick="openApp('phone')"><div class="icon-box" style="background:#34c759;">📞</div></div>
+      <div class="app-icon" onclick="openApp('kakao')"><div class="icon-box" style="background:#fee500; color:#000;">💬</div></div>
+      <div class="app-icon"><div class="icon-box" style="background:#007aff;">✉️</div></div>
+      <div class="app-icon"><div class="icon-box" style="background:#8e8e93;">📷</div></div>
+    </div>
+  </div>
+
+  <!-- App Views -->
+  <div id="app-phone" class="screen app-view">
+    <div style="padding: 15px; font-size: 22px; font-weight: bold;">최근 통화</div>
+    <div id="phone-list"></div>
+  </div>
+
+  <div id="app-kakao" class="screen app-view">
+    <div style="padding: 15px; background: #a0b1c0; font-weight: bold;" id="chat-title">채팅방</div>
+    <div id="chat-list" style="padding: 15px;"></div>
+  </div>
+
+  <div id="app-twitter" class="screen app-view">
+    <div style="padding: 15px; font-size: 18px; font-weight: bold; border-bottom: 0.5px solid #333;">프로필</div>
+    <div id="tweets-list"></div>
+  </div>
+
+  <div id="app-instagram" class="screen">
+    <div class="call-incoming" id="insta-incoming">
+      <div style="text-align: center;">
+        <div class="avatar-anim" style="margin: 0 auto 15px;" id="insta-avatar">👤</div>
+        <div style="font-size: 20px; font-weight: 600;" id="insta-caller">User</div>
+        <div style="font-size: 14px; opacity: 0.7; margin-top: 5px;">Instagram 비디오 통화</div>
+        <div style="font-size: 12px; margin-top: 15px;" id="insta-status">통화 중...</div>
+      </div>
+      <div style="display: flex; gap: 40px;">
+        <button onclick="closeApp()" style="width: 60px; height: 60px; border-radius: 50%; background: var(--ios-red); border: none; color: white; font-size: 24px;">✕</button>
+        <button onclick="acceptInstaCall()" style="width: 60px; height: 60px; border-radius: 50%; background: #34c759; border: none; color: white; font-size: 24px;">📞</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="app-spotify" class="screen app-view">
+    <div style="padding: 20px; text-align: center;">
+      <div style="width: 160px; height: 160px; background: #333; margin: 0 auto 15px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 40px;" id="spot-cover">🎵</div>
+      <div style="font-size: 18px; font-weight: bold;" id="spot-playlist">Playlist</div>
+      <div style="font-size: 12px; color: #888; margin-top: 4px;">1곡</div>
+    </div>
+    <div id="spot-tracks" style="padding: 0 20px;"></div>
+  </div>
+
+  <div class="home-bar" onclick="closeApp()"></div>
+</div>
+
+<script>
+  // CONFIG 配置區（你日後只需修改這裡）
+  const CONFIG = {
+    wallpaper: "https://picsum.photos/800/1600",
+    userName: "사용자",
+    contactName: "친구",
+    twitterHandle: "@user",
+    weather: { place: "서울", temp: "22°", desc: "맑음", high: "25°", low: "15°" },
+    events: [
+      { time: "10:00", title: "팀 미팅" },
+      { time: "14:00", title: "점심 약속" }
+    ],
+    calls: [
+      { group: "오늘", items: [ { type: "부재중", time: "12:30", count: "1" } ] }
+    ],
+    chat: [
+      { time: "12:00", text: "안녕하세요!" },
+      { time: "12:01", text: "오늘 시간 되시나요?" }
+    ],
+    tweets: [
+      "오늘 날씨가 정말 좋네요!",
+      "새로운 프로젝트 시작합니다."
+    ],
+    instagram: {
+      callerName: "sweetheart",
+      avatar: "",
+      video: "",
+      messages: [ { from: "상대방", text: "보고 싶어!", delay: 3 } ]
+    },
+    spotify: {
+      cover: "",
+      playlistName: "My Playlist",
+      tracks: [
+        { title: "Favorite Song", artist: "Artist", audio: "" }
+      ]
+    }
+  };
+
+  // 初始化介面資料
+  function initApp() {
+    document.getElementById('phone-container').style.backgroundImage = `url('${CONFIG.wallpaper}')`;
+    document.getElementById('w-place').innerText = CONFIG.weather.place;
+    document.getElementById('w-temp').innerText = CONFIG.weather.temp;
+    document.getElementById('w-desc').innerText = CONFIG.weather.desc;
+    document.getElementById('w-hl').innerText = `최고 ${CONFIG.weather.high} 최저 ${CONFIG.weather.low}`;
+
+    const evList = document.getElementById('w-ev-list');
+    evList.innerHTML = CONFIG.events.map(e => `<div>${e.time} ${e.title}</div>`).join('');
+
+    // Chat
+    const chatList = document.getElementById('chat-list');
+    chatList.innerHTML = CONFIG.chat.map(c => `<div class="chat-bubble">${c.text}</div>`).join('');
+
+    // Tweets
+    const tweetList = document.getElementById('tweets-list');
+    tweetList.innerHTML = CONFIG.tweets.map(t => `<div class="tweet-card">${t}</div>`).join('');
+
+    // Calls
+    const callList = document.getElementById('phone-list');
+    callList.innerHTML = CONFIG.calls.map(g => `
+      <div style="padding: 10px 20px; font-size: 12px; color: #888;">${g.group}</div>
+      ${g.items.map(i => `<div class="call-row ${i.type === '부재중' ? 'missed' : ''}"><span>${CONFIG.contactName} (${i.count})</span><span>${i.time}</span></div>`).join('')}
+    `).join('');
+
+    // Spotify
+    document.getElementById('spot-playlist').innerText = CONFIG.spotify.playlistName;
+    const spotTracks = document.getElementById('spot-tracks');
+    spotTracks.innerHTML = CONFIG.spotify.tracks.map(t => `
+      <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 0.5px solid #222;">
+        <div>
+          <div style="color: var(--spotify-green); font-weight: 600;">${t.title}</div>
+          <div style="font-size: 12px; color: #888;">${t.artist}</div>
+        </div>
+        <div>•••</div>
+      </div>
+    `).join('');
+
+    // Instagram
+    document.getElementById('insta-caller').innerText = CONFIG.instagram.callerName;
+
+    updateClock();
+    setInterval(updateClock, 1000);
+  }
+
+  function updateClock() {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const mins = String(now.getMinutes()).padStart(2, '0');
+    const timeStr = `${hours}:${mins}`;
+    document.getElementById('clock-status').innerText = timeStr;
+    document.getElementById('lock-time').innerText = timeStr;
+  }
+
+  // Lock Screen Unlock
+  let startY = 0;
+  const lockScreen = document.getElementById('lock-screen');
+  lockScreen.addEventListener('touchstart', e => startY = e.touches[0].clientY);
+  lockScreen.addEventListener('touchend', e => {
+    if (startY - e.changedTouches[0].clientY > 50) unlock();
+  });
+  lockScreen.addEventListener('click', unlock);
+
+  function unlock() {
+    lockScreen.classList.remove('active');
+    document.getElementById('home-screen').classList.add('active');
+  }
+
+  function openApp(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(`app-${id}`).classList.add('active');
+  }
+
+  function closeApp() {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('home-screen').classList.add('active');
+  }
+
+  function acceptInstaCall() {
+    document.getElementById('insta-status').innerText = "통화 연결됨";
+  }
+
+  window.onload = initApp;
+</script>
+</body>
+</html>
